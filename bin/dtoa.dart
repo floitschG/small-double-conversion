@@ -243,6 +243,14 @@ const int maxExponentialDigits = 120;
 const int minPrecisionDigits = 1;
 const int maxPrecisionDigits = 120;
 
+// [convertToPrecision] prefers to emit numbers in decimal mode. It allows
+// [maxLeadingPaddingZeroesInPrecisionMode] and
+// [maxTrailingPaddingZeroesInPrecisionMode] to make this happen.
+// For example: convertToPrecision(0.1, 2) wants to precision digits. Since
+// leading digits don't count as precision digits, it has to either return:
+// 0.10 or 1.0e-1.
+// Here, there would be one leading padding zero (and no trailing one), so
+// [convertToPrecision] emits the decimal representation.
 const int maxLeadingPaddingZeroesInPrecisionMode = 6;
 const int maxTrailingPaddingZeroesInPrecisionMode = 0;
 
