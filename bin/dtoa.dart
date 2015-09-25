@@ -1,6 +1,6 @@
-import 'dart:typed_data';  // Only used for converting a double to its bits.
 import 'dart:math' as math;
 import 'char_codes.dart' as codes;
+import 'float.dart';
 
 String convertToShortest(double d) {
   if (isSpecial(d)) return handleSpecialValues(d);
@@ -795,60 +795,4 @@ int normalizeExponent(int significand, int exponent) {
     exponent--;
   }
   return exponent;
-}
-
-class DoubleProperties {
-  final int bitRepresentation;
-  final double d;
-
-  static const int exponentMask = 0x7FF0000000000000;
-  static const int significandMask = 0x000FFFFFFFFFFFFF;
-  static const int hiddenBit = 0x0010000000000000;
-  static const int physicalSignificandSize = 52;
-  static const int significandSize = 53;
-
-  static const int exponentBias = 0x3FF + physicalSignificandSize;
-  static const int denormalExponent = -exponentBias + 1;
-
-  DoubleProperties(double d)
-      : bitRepresentation = _doubleToBitRepresentation(d),
-        this.d = d;
-
-  static int _doubleToBitRepresentation(double d) {
-    // TODO(floitsch): this could be much cheaper if there was a native call.
-    Float64List floatList = new Float64List(1);
-    floatList[0] = d;
-    // TODO(floitsch): maybe we should care little-endian/big-endian here.
-    Int64List int64List = new Int64List.view(floatList.buffer);
-    return int64List[0];
-  }
-
-  bool get isDenormal => (bitRepresentation & exponentMask) == 0;
-
-  int get significand {
-    int result = bitRepresentation & significandMask;
-    if (isDenormal) return result;
-    return result | hiddenBit;
-  }
-
-  int get exponent {
-    if (isDenormal) return denormalExponent;
-
-    int biasedE = (bitRepresentation & exponentMask) >> physicalSignificandSize;
-    return biasedE - exponentBias;
-  }
-
-   bool get isLowerBoundaryCloser {
-    // The boundary is closer if the significand is of the form f == 2^p-1 then
-    // the lower boundary is closer.
-    // Think of v = 1000e10 and v- = 9999e9.
-    // Then the boundary (== (v - v-)/2) is not just at a distance of 1e9 but
-    // at a distance of 1e8.
-    // The only exception is for the smallest normal: the largest denormal is
-    // at the same distance as its successor.
-    // Note: denormals have the same exponent as the smallest normals.
-    bool physicalSignificandIsZero =
-        (bitRepresentation & significandMask) == 0;
-    return physicalSignificandIsZero && (exponent != denormalExponent);
-  }
 }
