@@ -1,3 +1,7 @@
+// Copyright (c) 2015, the Dart project authors.  Please see the AUTHORS file
+// for details. All rights reserved. Use of this source code is governed by a
+// BSD-style license that can be found in the LICENSE file.
+
 import 'dart:math' as math;
 import 'char_codes.dart' as codes;
 import 'float.dart';
@@ -16,8 +20,10 @@ String convertToShortest(double d) {
   if (lowExponentForDecimal <= exponent && exponent < highExponentForDecimal) {
     int digitsLength = decomposition.decimalDigits.length;
     int decimalPoint = decomposition.decimalPointPosition;
+    // To distinguish doubles from integers, we require the shortest
+    // representation to always have a least one digit after the decimal point.
     return createDecimalRepresentation(
-        decomposition, math.max(0, digitsLength - decimalPoint));
+        decomposition, math.max(1, digitsLength - decimalPoint));
   } else {
     return createExponentialRepresentation(decomposition);
   }
@@ -54,7 +60,8 @@ String convertToExponential(double d, int requestedDigits) {
     decomposition = doubleToDecimal(d, DoubleConversionMode.shortest);
   } else {
     decomposition = doubleToDecimal(
-        d, DoubleConversionMode.fixed, requestedDigits: requestedDigits + 1);
+        d, DoubleConversionMode.precision,
+        requestedDigits: requestedDigits + 1);
     List<int> digits = decomposition.decimalDigits;
     int length = digits.length;
     // Fill the digits-list with 0s if there aren't enough digits.
@@ -145,7 +152,7 @@ String createDecimalRepresentation(
     }
     addZeroPadding(charCodes, decimalPoint - length);
     if (digitsAfterPoint > 0) {
-      digits.add(codes.dot);
+      charCodes.add(codes.dot);
       addZeroPadding(charCodes, digitsAfterPoint);
     }
   } else {
@@ -161,10 +168,6 @@ String createDecimalRepresentation(
     }
     int remainingDigits = digitsAfterPoint - (length - decimalPoint);
     addZeroPadding(charCodes, remainingDigits);
-  }
-  if (digitsAfterPoint == 0) {
-    charCodes.add(codes.dot);
-    charCodes.add(codes.zero);
   }
   return new String.fromCharCodes(charCodes);
 }

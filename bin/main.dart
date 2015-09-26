@@ -1,9 +1,15 @@
+// Copyright (c) 2015, the Dart project authors.  Please see the AUTHORS file
+// for details. All rights reserved. Use of this source code is governed by a
+// BSD-style license that can be found in the LICENSE file.
+
 import 'dtoa.dart';
 import 'atod.dart';
 
 main(List<String> args) {
-  print(convertToShortest(0.0));
+  print(convertToShortest(9.0));
   print(convertToFixed(0.0, 1));
+  print(convertToFixed(9.0, 1));
+  print(convertToShortest(0.0));
   print(convertToExponential(1.0, 0));
 
   print(convertToPrecision(0.000555, 21));
