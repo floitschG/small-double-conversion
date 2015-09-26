@@ -416,16 +416,21 @@ DecimalDecomposition doubleToDecimalShortest(
       deltaMinus *= 10;
       deltaPlus *= 10;
     } else if (inDeltaRoomMinus && inDeltaRoomPlus) {
-      // Halfway case.
-      // TODO(floitsch): need a way to solve half-way cases.
-      //   For now let's round towards even (since this is what Gay seems to
-      //   do).
-
-      if (digits.last % 2 == 0) {
-        // Round down. Nothing to do.
-      } else {
+      // Let's see if denominator > 2*numerator
+      // If yes, then the next digit would be < 5 and we can round down.
+      int diff = (denominator - numerator - numerator);
+      if (diff < 0 ||
+          (diff == 0 && (digits.last & 1) == 1)) {
+        // Either the next digit would be > 5, or it would be exactly 5.
+        // In the halfway case we need to round to even. If the last digit is
+        // not even, then we need to round up (for the half-way case).
+        // Note that the last digit could not be a '9' as otherwise the whole
+        // loop would have stopped earlier.
         assert(digits.last != 9);
         digits[digits.length - 1]++;
+      } else {
+        // The next digit would be < 5, or == 5, but we already round to even.
+        // Round down (i.e. do nothing).
       }
       break;
     } else if (inDeltaRoomMinus) {

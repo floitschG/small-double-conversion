@@ -2,6 +2,8 @@ import 'dtoa.dart';
 import 'atod.dart';
 
 main(List<String> args) {
+  print(convertToShortest(111111111111111111111.0));
+
   print(convertToShortest(1.5));
   print(convertToShortest(0.1));
   print(convertToShortest(1e20));
@@ -82,4 +84,7 @@ main(List<String> args) {
             "5931578479504396230612962142122846982018227555473696607567828620" /// 03: ok
             "5497859173707553281928994692862033843994140625"));
   print(atod("22250738585072011e-324"));
+  print(atod("2.225073858507201e-308"));
+  print(atod("+2.225073858507201e-308"));
+  print(atod("1e 2"));
 }

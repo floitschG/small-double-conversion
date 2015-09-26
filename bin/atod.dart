@@ -24,7 +24,10 @@ const int maxDecimalExponent = 0x3FFFFFFF;
 
 double atod(String str) {
   if (str == "NaN") return double.NAN;
+  if (str == "+NaN") return double.NAN;
+  if (str == "-NaN") return -double.NAN;
   if (str == "Infinity") return double.INFINITY;
+  if (str == "+Infinity") return double.INFINITY;
   if (str == "-Infinity") return double.NEGATIVE_INFINITY;
   if (str == "") return null;
 
@@ -32,6 +35,8 @@ double atod(String str) {
   bool isNegative = false;
   if (str.codeUnitAt(0) == codes.hyphen) {
     isNegative = true;
+    startPos = 1;
+  } else if (str.codeUnitAt(0) == codes.plus) {
     startPos = 1;
   }
 
@@ -58,6 +63,10 @@ double atod(String str) {
     }
   }
 
+  // There must be a digit somewhere before the exponent.
+  // For example '.e1' or 'e1' is not allowed.
+  if (digitsPos == 0) return null;
+
   digits.length = digitsPos;
 
   bool exponentIsNegative = false;
@@ -80,18 +89,17 @@ double atod(String str) {
 
     for (int i = exponentPos; i < str.length; i++) {
       int codeUnit = str.codeUnitAt(i);
-      if (codes.zero <= codeUnit && codeUnit <= codes.nine) {
-        exponent = exponent * 10 + (codeUnit - codes.zero);
-      }
+      if (codeUnit < codes.zero || codeUnit > codes.nine) return null;
+      exponent = exponent * 10 + (codeUnit - codes.zero);
       if (exponent > maxDecimalExponent) return null;
     }
     if (exponentIsNegative) exponent = -exponent;
   }
 
   // Add the decimal-point position to the exponent. We won't need that
-  // position afterwards.
+  // variable after that.
   if (decimalPointPos != -1) {
-    exponent -= (digits.length - decimalPointPos);
+    exponent -= (digits.length - decimalPointPos + startPos);
   }
 
   int nonZeroStart = 0;
