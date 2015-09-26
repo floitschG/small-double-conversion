@@ -71,23 +71,109 @@ class DoubleProperties {
     // at the same distance as its successor.
     // Note: denormals have the same exponent as the smallest normals.
     bool physicalSignificandIsZero =
-    (bitRepresentation & significandMask) == 0;
+        (bitRepresentation & significandMask) == 0;
     return physicalSignificandIsZero && (exponent != denormalExponent);
   }
 
   bool get isNegative => (bitRepresentation & signMask) != 0;
 
   /// Returns the next double. This double must be positive.
-  double get nextDouble {
+  double get next {
     assert(value != double.INFINITY && !isNegative);
     return new DoubleProperties.fromBits(bitRepresentation + 1).value;
   }
 
   /// Returns the previous double. This double must be strictly positive.
-  double get previousDouble {
+  double get previous {
     assert(value > 0);
     return new DoubleProperties.fromBits(bitRepresentation - 1).value;
   }
 
-  static const double minPositiveNonZeroDouble = 4e-324;
+  static const double minPositiveNonZero = 4e-324;
+}
+
+class SingleProperties {
+  final int bitRepresentation;
+  final double value;
+
+  static const int exponentMask = 0x7F800000;
+  static const int significandMask = 0x007FFFFF;
+  static const int signMask = 0x80000000;
+  static const int hiddenBit = 0x00800000;
+  static const int physicalSignificandSize = 23;
+  static const int significandSize = 24;
+
+  static const int exponentBias = 0x7F + physicalSignificandSize;
+  static const int denormalExponent = -exponentBias + 1;
+
+  SingleProperties(double value)
+      : bitRepresentation = _singleToBitRepresentation(value),
+        this.value = value;
+
+  SingleProperties.fromBits(int bits)
+      : bitRepresentation = bits,
+        value = _bitRepresentationToSingle(bits);
+
+  static int _singleToBitRepresentation(double d) {
+    // TODO(floitsch): this could be much cheaper if there was a native call.
+    Float32List floatList = new Float32List(1);
+    // TODO(floitsch): maybe we should care little-endian/big-endian here.
+    Int32List int32List = new Int32List.view(floatList.buffer);
+    floatList[0] = d;
+    return int32List[0];
+  }
+
+  static double _bitRepresentationToSingle(int bits) {
+    // TODO(floitsch): this could be much cheaper if there was a native call.
+    Float32List floatList = new Float32List(1);
+    // TODO(floitsch): maybe we should care little-endian/big-endian here.
+    Int32List int32List = new Int32List.view(floatList.buffer);
+    int32List[0] = bits;
+    return floatList[0];
+  }
+
+  bool get isDenormal => (bitRepresentation & exponentMask) == 0;
+
+  int get significand {
+    int result = bitRepresentation & significandMask;
+    if (isDenormal) return result;
+    return result | hiddenBit;
+  }
+
+  int get exponent {
+    if (isDenormal) return denormalExponent;
+
+    int biasedE = (bitRepresentation & exponentMask) >> physicalSignificandSize;
+    return biasedE - exponentBias;
+  }
+
+  bool get isLowerBoundaryCloser {
+    // The boundary is closer if the significand is of the form f == 2^p-1 then
+    // the lower boundary is closer.
+    // Think of v = 1000e10 and v- = 9999e9.
+    // Then the boundary (== (v - v-)/2) is not just at a distance of 1e9 but
+    // at a distance of 1e8.
+    // The only exception is for the smallest normal: the largest denormal is
+    // at the same distance as its successor.
+    // Note: denormals have the same exponent as the smallest normals.
+    bool physicalSignificandIsZero =
+        (bitRepresentation & significandMask) == 0;
+    return physicalSignificandIsZero && (exponent != denormalExponent);
+  }
+
+  bool get isNegative => (bitRepresentation & signMask) != 0;
+
+  /// Returns the next double. This double must be positive.
+  double get next {
+    assert(value != double.INFINITY && !isNegative);
+    return new DoubleProperties.fromBits(bitRepresentation + 1).value;
+  }
+
+  /// Returns the previous double. This double must be strictly positive.
+  double get previous {
+    assert(value > 0);
+    return new DoubleProperties.fromBits(bitRepresentation - 1).value;
+  }
+
+  static const double minPositiveNonZero = 1e-45;
 }

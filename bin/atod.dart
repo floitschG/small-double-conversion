@@ -275,7 +275,7 @@ double convertDigits(List<int> digits, int exponent) {
         math.pow(10.0, -adjustedExponent);
   }
   // It's easier if the candidate is never 0.
-  if (candidate == 0.0) candidate = DoubleProperties.minPositiveNonZeroDouble;
+  if (candidate == 0.0) candidate = DoubleProperties.minPositiveNonZero;
 
   int decimalSignificand = 0;
   for (int i = 0; i < digits.length; i++) {
@@ -358,10 +358,10 @@ double convertDigits(List<int> digits, int exponent) {
       } else if (scaledBoundaryDiff == scaledCandidate) {
         // The candidate lies exactly on the boundary. We round to even.
         if (candidateSignificand.isEven) return candidate;
-        return properties.nextDouble;
+        return properties.next;
       } else {
         // Try the next double.
-        candidate = properties.nextDouble;
+        candidate = properties.next;
       }
     } else {
       // v is smaller than the candidate.
@@ -387,10 +387,10 @@ double convertDigits(List<int> digits, int exponent) {
       } else if (scaledBoundaryDiff == scaledCandidate) {
         // The candidate lies exactly on the boundary. We round to even.
         if (candidateSignificand.isEven) return candidate;
-        return properties.previousDouble;
+        return properties.previous;
       } else {
         // Try the next double.
-        candidate = properties.previousDouble;
+        candidate = properties.previous;
       }
     }
   }
