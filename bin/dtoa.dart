@@ -534,7 +534,7 @@ DecimalDecomposition doubleToDecimalCounted(
   // Adjust the last digit if necessary.
   int digit = numerator ~/ denominator;
   numerator = numerator.remainder(denominator);
-  if (numerator + numerator >= denominator * 10) {
+  if (numerator + numerator >= denominator) {
     digit++;
   }
   digits.add(digit);

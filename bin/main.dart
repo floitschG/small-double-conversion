@@ -2,6 +2,14 @@ import 'dtoa.dart';
 import 'atod.dart';
 
 main(List<String> args) {
+  print(convertToShortest(0.0));
+  print(convertToFixed(0.0, 1));
+  print(convertToExponential(1.0, 0));
+  print(convertToPrecision(0.000555, 21));
+//  Expect.equals("0.000555000000000000046248",
+//      (0.000555).toStringAsPrecision(21));
+
+
   print(convertToShortest(111111111111111111111.0));
 
   print(convertToShortest(1.5));
