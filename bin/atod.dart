@@ -166,41 +166,6 @@ double atod(String str) {
   return isNegative ? -result : result;
 }
 
-
-// 2^53 = 9007199254740992.
-// Any integer with at most 15 decimal digits will hence fit into a double
-// (which has a 53bit significand) without loss of precision.
-const int maxExactDoubleIntegerDecimalDigits = 15;
-
-// If size is important this table can be replaced by a call to
-// `math.pow(2.0, i)`.
-const List<double> exactPowersOfTen = const <double>[
-  1.0,  // 10^0
-  10.0,
-  100.0,
-  1000.0,
-  10000.0,
-  100000.0,
-  1000000.0,
-  10000000.0,
-  100000000.0,
-  1000000000.0,
-  10000000000.0,  // 10^10
-  100000000000.0,
-  1000000000000.0,
-  10000000000000.0,
-  100000000000000.0,
-  1000000000000000.0,
-  10000000000000000.0,
-  100000000000000000.0,
-  1000000000000000000.0,
-  10000000000000000000.0,
-  100000000000000000000.0,  // 10^20
-  1000000000000000000000.0,
-  // 10^22 = 0x21e19e0c9bab2400000 = 0x878678326eac9 * 2^22
-  10000000000000000000000.0
-];
-
 int convertDigitsToInt(List<int> digits) {
   int result = 0;
   for (int i = 0; i < digits.length; i++) {
@@ -209,12 +174,15 @@ int convertDigitsToInt(List<int> digits) {
   return result;
 }
 
-// If the digits and the 10^exponent fit into a double without loss of
-// precision we can compute the double directly with floating-point operations.
+/// If the digits and the 10^exponent fit into a double without loss of
+/// precision we can compute the double directly with floating-point operations.
 double convertDigitsFastPath(List<int> digits, int exponent) {
+  List<double> exactPowersOfTen = DoubleProperties.exactPowersOfTen;
+  int maxExactDecimalDigits = DoubleProperties.maxExactDecimalDigits;
+
   // If we have few digits, then they fit into a double without loss of
   // precision.
-  if (digits.length >= maxExactDoubleIntegerDecimalDigits) return null;
+  if (digits.length >= maxExactDecimalDigits) return null;
 
   if (0 <= exponent && exponent < exactPowersOfTen.length) {
     // 10^exponent fits into a double.
@@ -226,7 +194,7 @@ double convertDigitsFastPath(List<int> digits, int exponent) {
   }
   // The exponent is outside the exact-powers-of-ten range, but maybe the
   // significand is short enough that we can adjust it.
-  int remainingDigits = maxExactDoubleIntegerDecimalDigits - digits.length;
+  int remainingDigits = maxExactDecimalDigits - digits.length;
   if (0 <= exponent && exponent - remainingDigits < exactPowersOfTen.length) {
     // The trimmed string was short and we can multiply it with
     // 10^remaining_digits. As a result the remaining exponent now fits
@@ -264,13 +232,15 @@ double convertDigits(List<int> digits, int exponent) {
   if (adjustedExponent >= 0) {
     candidate = decimalSignificandApproximation.toDouble() *
         math.pow(10.0, adjustedExponent);
-  } else if (adjustedExponent <= -308) {
+  } else if (adjustedExponent <= -DoubleProperties.maxDecimalExponent) {
     // If the exponent is too small, math.pow(10, -adjustedExponent) would yield
     // infinity. Do the computation in two steps, to avoid this.
-    candidate = decimalSignificandApproximation.toDouble() * 1e-308 /
-        math.pow(10.0, -adjustedExponent - 308);
+    candidate = decimalSignificandApproximation.toDouble() *
+        DoubleProperties.invMaxDecimalPower /
+        math.pow(10.0, -adjustedExponent - DoubleProperties.maxDecimalExponent);
   } else {
-    assert(-308 < adjustedExponent && adjustedExponent < 0);
+    assert(-DoubleProperties.maxDecimalExponent < adjustedExponent);
+    assert(adjustedExponent < 0);
     candidate = decimalSignificandApproximation.toDouble() /
         math.pow(10.0, -adjustedExponent);
   }
@@ -373,7 +343,7 @@ double convertDigits(List<int> digits, int exponent) {
       //   candidate = 10000*10^3. Then the next lower floating point number
       //   would be 99999*10^2, at distance 1*2^2 (instead of 1*2^3).
       int scaledBoundaryDiff;
-      // For doubles the hidden bit is equal to 1<<p.
+      // For IEEE floating-point numbers the hidden bit is equal to 1<<p.
       if (candidateSignificand == DoubleProperties.hiddenBit) {
         // Boundary is at distance 2^(candidateExponent-2). Otherwise everything
         // works as above.

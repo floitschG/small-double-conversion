@@ -20,6 +20,56 @@ class DoubleProperties {
   static const int exponentBias = 0x3FF + physicalSignificandSize;
   static const int denormalExponent = -exponentBias + 1;
 
+
+  static const double minPositiveNonZero = 4e-324;
+
+  /// The greatest decimal exponent that can be encoded in a double without
+  /// overflowing to infinity: 1e308.
+  static const int maxDecimalExponent = 308;
+
+  /// 1/10^maxDecimalExponent.
+  static const double invMaxDecimalPower = 1e-308;
+
+  /// A decimal of size 15 fits into a double without loss of precision.
+  ///
+  /// The significant of a double is 53 bits (when counting the hidden bit).
+  ///
+  ///     2^53 = 9007199254740992.
+  ///
+  /// Any integer with at most 15 decimal digits will hence fit into a double
+  /// without loss of precision.
+  static const int maxExactDecimalDigits = 15;
+
+  // If size is important this table can be replaced by a call to
+  // `math.pow(2.0, i)`.
+  static const List<double> exactPowersOfTen = const <double>[
+    1.0,  // 10^0
+    10.0,
+    100.0,
+    1000.0,
+    10000.0,
+    100000.0,
+    1000000.0,
+    10000000.0,
+    100000000.0,
+    1000000000.0,
+    // 10^10 = 0x2540be400 = 0x9502f9 * 2^10
+    10000000000.0,  // 10^10
+    100000000000.0,
+    1000000000000.0,
+    10000000000000.0,
+    100000000000000.0,
+    1000000000000000.0,
+    10000000000000000.0,
+    100000000000000000.0,
+    1000000000000000000.0,
+    10000000000000000000.0,
+    100000000000000000000.0,  // 10^20
+    1000000000000000000000.0,
+    // 10^22 = 0x21e19e0c9bab2400000 = 0x878678326eac9 * 2^22
+    10000000000000000000000.0
+  ];
+
   DoubleProperties(double value)
       : bitRepresentation = _doubleToBitRepresentation(value),
         this.value = value;
@@ -88,8 +138,6 @@ class DoubleProperties {
     assert(value > 0);
     return new DoubleProperties.fromBits(bitRepresentation - 1).value;
   }
-
-  static const double minPositiveNonZero = 4e-324;
 }
 
 class SingleProperties {
@@ -105,6 +153,44 @@ class SingleProperties {
 
   static const int exponentBias = 0x7F + physicalSignificandSize;
   static const int denormalExponent = -exponentBias + 1;
+
+  /// The smallest positive non-zero single.
+  static const double minPositiveNonZero = 1e-45;
+
+  /// The greatest decimal exponent that can be encoded in a single without
+  /// overflowing to infinity: 1e38.
+  static const int maxDecimalExponent = 38;
+
+  /// 1/10^maxDecimalExponent.
+  static const double invMaxDecimalPower = 1e-38;
+
+  /// A decimal of size 7 fits into a single without loss of precision.
+  ///
+  /// The significant of a single is 24 bits (when counting the hidden bit).
+  ///
+  ///     2^24 = 16777216.
+  ///
+  /// Any integer with at most 7 decimal digits will hence fit into a single
+  /// without loss of precision.
+  static const int maxExactDecimalDigits = 7;
+
+  // If size is important this table can be replaced by a call to
+  // `math.pow(2.0, i)`.
+  static const List<double> exactPowersOfTen = const <double>[
+    1.0,  // 10^0
+    10.0,
+    100.0,
+    1000.0,
+    10000.0,
+    100000.0,
+    1000000.0,
+    10000000.0,
+    100000000.0,
+    1000000000.0,
+    // 10^10 = 0x2540be400 = 0x9502f9 * 2^10
+    10000000000.0,  // 10^10
+  ];
+
 
   SingleProperties(double value)
       : bitRepresentation = _singleToBitRepresentation(value),
@@ -174,6 +260,4 @@ class SingleProperties {
     assert(value > 0);
     return new DoubleProperties.fromBits(bitRepresentation - 1).value;
   }
-
-  static const double minPositiveNonZero = 1e-45;
 }

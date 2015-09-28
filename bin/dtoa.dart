@@ -312,7 +312,8 @@ DecimalDecomposition doubleToDecimal(
   bool needBoundaryDeltas = mode == DoubleConversionMode.shortest;
   bool isEven = significand.isEven;
   int normalizedExponent = normalizeExponent(significand, exponent);
-  int estimatedPower = estimatePower(normalizedExponent);
+  int estimatedPower =
+      estimatePower(normalizedExponent, DoubleProperties.significandSize);
 
   // Shortcut for fixed mode.
   // The requested digits correspond to the digits after the point. If the
@@ -738,26 +739,27 @@ ScaledStartValues computeInitialScaledStartValuesNegativeExponentNegativePower(
   return new ScaledStartValues(numerator, denominator, deltaMinus, deltaPlus);
 }
 
-// Returns an estimation of k such that 10^(k-1) <= v < 10^k where
-// v = f * 2^exponent and 2^52 <= f < 2^53.
-// v is hence a normalized double with the given exponent. The output is an
-// approximation for the exponent of the decimal approximation .digits * 10^k.
-//
-// The result might undershoot by 1 in which case 10^k <= v < 10^k+1.
-// Note: this property holds for v's upper boundary m+ too.
-//    10^k <= m+ < 10^k+1.
-//   (see explanation below).
-//
-// Examples:
-//  EstimatePower(0)   => 16
-//  EstimatePower(-52) => 0
-//
-// Note: e >= 0 => estimatePower(e) > 0. No similar claim can be made for e<0.
-int estimatePower(int exponent) {
+/// Returns an estimation of k such that 10^(k-1) <= v < 10^k where
+/// v = f * 2^exponent and 2^(p-1) <= f < 2^p.
+/// v is hence a normalized double with the given exponent. The output is an
+/// approximation for the exponent of the decimal approximation .digits * 10^k.
+///
+/// The result might undershoot by 1 in which case 10^k <= v < 10^k+1.
+/// Note: this property holds for v's upper boundary m+ too.
+///    10^k <= m+ < 10^k+1.
+///   (see explanation below).
+///
+/// Examples:
+///
+///    estimatePower(0, 53)   => 16
+///    estimatePower(-52, 53) => 0
+///
+/// Note: e >= 0 => estimatePower(e) > 0. No similar claim can be made for e<0.
+int estimatePower(int exponent, int p) {
   // This function estimates log10 of v where v = f*2^e (with e == exponent).
   // Note that 10^floor(log10(v)) <= v, but v <= 10^ceil(log10(v)).
-  // Note that f is bounded by its container size. Let p = 53 (the double's
-  // significand size). Then 2^(p-1) <= f < 2^p.
+  // Note that f is bounded by its container size. For example, for a double
+  // the significand has 53 bits. Thus p = 53 and 2^(p-1) <= f < 2^p.
   //
   // Given that log10(v) == log2(v)/log2(10) and e+(len(f)-1) is quite close
   // to log2(v) the function is simplified to (e+(len(f)-1)/log2(10)).
@@ -768,12 +770,11 @@ int estimatePower(int exponent) {
   // (even for denormals where the delta can be much more important).
 
   int undershootBias = 2000;
-  int length = 52;  // Physical length of double significands.
   // 1/ln(10) =~= 0.30102999566398_11952137388947244930267681898814621085
   // We use an approximated version: 0x134413509f79f * 2^-50
   //   =~= 0.30102999566398_036535019855364225804805755615234375
   //
-  // We start by computing (e - 52) * 0x134413509f79f, and will deal with the
+  // We start by computing (e - p - 1) * 0x134413509f79f, and will deal with the
   // 2^-50 at the end (just before ceiling).
   //
   // Remember that we guarantee that the value is either correct or undershoots.
@@ -781,17 +782,17 @@ int estimatePower(int exponent) {
   // smaller than the actual value. However, for
   // negative numbers this would lead to a potential overshoot. We correct for
   // this by decrementing the result of the multiplication by 2000.
-  // We chose 2000 because abs(e - 52) < 2000. For positive numbers we therefore
-  // undershoot even more, but it's still tiny since we will multiply by
-  // 2^-50 in the next step.
+  // We chose 2000 because abs(e - p - 1) < 2000 (for reasonable p). For
+  // positive numbers we therefore undershoot even more, but it's still tiny
+  // since we will multiply by 2^-50 in the next step.
   //
   // We combine the multiplication of 2^-50 with the ceiling operation.
   // Shifting out the least significant 50 bits is equivalent to flooring the
   // result. By decrementing the result before-hand (if only slightly) means
   // that adding 1 to the result of the shift is equivalent to ceiling the
   // full multiplication.
-  assert((exponent + length).abs() < undershootBias);
-  return (((exponent + length) * 0x134413509f79f - undershootBias) >> 50) + 1;
+  assert((exponent + p - 1).abs() < undershootBias);
+  return (((exponent + p - 1) * 0x134413509f79f - undershootBias) >> 50) + 1;
 }
 
 // Normalizes the exponent for denormalized values.
